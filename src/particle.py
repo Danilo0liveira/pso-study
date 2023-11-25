@@ -6,6 +6,6 @@ class Particle:
         self.vel = 0
         self.best_pos = self.x
         self.neighbour = [None, None]
-        self.currentFit = 0
-        self.bestFit = 0
+        self.current_fit = 0
+        self.best_fit = 0
 
