@@ -1,8 +1,9 @@
 
 from particle import Particle
 import numpy as np
-from multiprocessing import cpu_count
-import concurrent.futures
+import multiprocessing as mp
+
+
 
 class ParticleSwarmOptimization:
     def __init__(self, Vmin, Vmax, Xmin, Xmax, Ngenerations, N, pop, fitness, c1=0, c2=0):
@@ -36,33 +37,27 @@ class ParticleSwarmOptimization:
             # second neighbour
             if index:        
                 particle.neighbour[1] = particles[index - 1]
-        
+
         self.best_particle = particles[0]
         self.gen = 1
             
         return particles
-    
-    def set_particle_current_fit(self, particle):
-        particle.current_fit = self.fitness(particle)
-        
-        # biggest value optimization
-        
-        if particle.best_fit == None:
-            particle.best_fit = np.copy(particle.current_fit)
-            particle.best_pos = np.copy(particle.x)
-            
-        if abs(particle.current_fit) < abs(particle.best_fit):
-            particle.best_fit = np.copy(particle.current_fit)
-            particle.best_pos = np.copy(particle.x)
-        pass
-    
-    def run_generation(self):
-        
-        # with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count()) as executor:
-                # executor.map(self.set_particle_current_fit, self.particles)
 
-        for particle in self.particles:
-            self.set_particle_current_fit(particle)
+    def run_generation(self):
+        with mp.Pool(mp.cpu_count()) as pool:
+            new_fitness = pool.map(self.fitness, self.particles)
+            
+        for i in range(len(self.particles)):
+            particle = self.particles[i]
+            particle.current_fit = new_fitness[i]
+
+            if particle.best_fit == None:
+                particle.best_fit = np.copy(particle.current_fit)
+                particle.best_pos = np.copy(particle.x)
+                
+            if particle.current_fit < particle.best_fit:
+                particle.best_fit = np.copy(particle.current_fit)
+                particle.best_pos = np.copy(particle.x)
 
         self.best_particle = sorted(self.particles, key= lambda p : p.best_fit)[0] 
         self.gen+=1
@@ -78,7 +73,7 @@ class ParticleSwarmOptimization:
             lock_neighbour = particle.neighbour[particle.neighbour != None]
 
             if len(lock_neighbour) > 1:
-                lock_neighbour = min(particle.neighbour[0].best_fit, particle.neighbour[0].best_fit)
+                lock_neighbour = min(particle.neighbour[0].best_fit, particle.neighbour[1].best_fit)
             else:
                 lock_neighbour =  lock_neighbour[0].best_fit
 
